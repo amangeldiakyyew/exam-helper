@@ -1,0 +1,116 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.2.2/schema.json",
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true
+	},
+	"files": {
+		"ignoreUnknown": true,
+		"includes": [
+			"**",
+			"!**/.*",
+			"!**/node_modules",
+			"!**/public",
+			"!**/dist",
+			"!**/build",
+			"!**/log",
+			"!**/logs"
+		]
+	},
+	"formatter": {
+		"enabled": true,
+		"indentStyle": "tab",
+		"lineEnding": "lf"
+	},
+	"linter": {
+		"enabled": true,
+		"domains": { "next": "recommended", "react": "recommended" },
+		"rules": {
+			"recommended": true,
+			"suspicious": {
+				"noShadowRestrictedNames": "warn"
+			},
+			"nursery": "off",
+			"complexity": {
+				"noStaticOnlyClass": "off"
+			},
+			"security": {
+				"noDangerouslySetInnerHtml": "off"
+			},
+			"a11y": {
+				"useKeyWithClickEvents": "off",
+				"noStaticElementInteractions": "off"
+			}
+		}
+	},
+	"javascript": {
+		"formatter": {
+			"quoteStyle": "double"
+		}
+	},
+	"assist": {
+		"enabled": true,
+		"actions": {
+			"source": {
+				"organizeImports": {
+					"level": "on",
+					"options": {
+						"groups": [
+							[":BUN:", ":NODE:", "node:*", ":URL:"],
+							":BLANK_LINE:",
+
+							["hono", "hono/**"],
+							":BLANK_LINE:",
+
+							[":THIRD_PARTY:", ":PACKAGE:", "!@/**"],
+							":BLANK_LINE:",
+
+							["@/notification", "@/notification/**"],
+							":BLANK_LINE:",
+
+							["@/queue", "@/queue/**"],
+							":BLANK_LINE:",
+
+							["@/config", "@/config/**"],
+							":BLANK_LINE:",
+
+							["@/database", "@/database/**"],
+							":BLANK_LINE:",
+
+							["@/http/middlewares/**"],
+							":BLANK_LINE:",
+
+							["@/http/validators/**"],
+							":BLANK_LINE:",
+
+							["@/http/controllers/**"],
+							":BLANK_LINE:",
+
+							["@/http/resources/**"],
+							":BLANK_LINE:",
+
+							["@/services", "@/services/**"],
+							":BLANK_LINE:",
+
+							["@/lib/**"],
+							":BLANK_LINE:",
+
+							["@/utils", "@/utils/**"],
+							":BLANK_LINE:",
+
+							["@/**", "!@/types", "!@/types/**"],
+							":BLANK_LINE:",
+
+							["./**"],
+							":BLANK_LINE:",
+
+							["@/types", "@/types/**"],
+							":BLANK_LINE:"
+						]
+					}
+				}
+			}
+		}
+	}
+}
