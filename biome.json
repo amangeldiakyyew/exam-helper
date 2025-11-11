@@ -13,6 +13,8 @@
 			"!**/node_modules",
 			"!**/public",
 			"!**/dist",
+			"!**/dist-electron",
+			"!**/release",
 			"!**/build",
 			"!**/log",
 			"!**/logs"
@@ -60,52 +62,10 @@
 							[":BUN:", ":NODE:", "node:*", ":URL:"],
 							":BLANK_LINE:",
 
-							["hono", "hono/**"],
-							":BLANK_LINE:",
-
-							[":THIRD_PARTY:", ":PACKAGE:", "!@/**"],
-							":BLANK_LINE:",
-
-							["@/notification", "@/notification/**"],
-							":BLANK_LINE:",
-
-							["@/queue", "@/queue/**"],
-							":BLANK_LINE:",
-
-							["@/config", "@/config/**"],
-							":BLANK_LINE:",
-
-							["@/database", "@/database/**"],
-							":BLANK_LINE:",
-
-							["@/http/middlewares/**"],
-							":BLANK_LINE:",
-
-							["@/http/validators/**"],
-							":BLANK_LINE:",
-
-							["@/http/controllers/**"],
-							":BLANK_LINE:",
-
-							["@/http/resources/**"],
-							":BLANK_LINE:",
-
-							["@/services", "@/services/**"],
-							":BLANK_LINE:",
-
-							["@/lib/**"],
-							":BLANK_LINE:",
-
-							["@/utils", "@/utils/**"],
-							":BLANK_LINE:",
-
-							["@/**", "!@/types", "!@/types/**"],
+							["electron", "electron/**"],
 							":BLANK_LINE:",
 
 							["./**"],
-							":BLANK_LINE:",
-
-							["@/types", "@/types/**"],
 							":BLANK_LINE:"
 						]
 					}

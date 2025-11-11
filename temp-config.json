@@ -1,28 +1,17 @@
 {
-  "directories": {
-    "output": "release"
-  },
-  "appId": "com.sinavyardimcisi",
-  "mac": {
-    "target": [
-      "dmg",
-      "zip"
-    ]
-  },
-  "win": {
-    "target": [
-      "nsis",
-      "zip"
-    ]
-  },
-  "linux": {
-    "target": [
-      "AppImage",
-      "deb",
-      "rpm",
-      "tar.gz"
-    ],
-    "category": "Utility"
-  },
-  "productName": "Sınav Yardımcısı"
+	"directories": {
+		"output": "release"
+	},
+	"appId": "com.sinavyardimcisi",
+	"mac": {
+		"target": ["dmg", "zip"]
+	},
+	"win": {
+		"target": ["nsis", "zip"]
+	},
+	"linux": {
+		"target": ["AppImage", "deb", "rpm", "tar.gz"],
+		"category": "Utility"
+	},
+	"productName": "Sınav Yardımcısı"
 }
