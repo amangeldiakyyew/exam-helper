@@ -31,7 +31,7 @@ async function main() {
 	writeFileSync("temp-config.json", JSON.stringify(pkg.build, null, 2));
 
 	console.log("Building...");
-	execSync("bunx tsc", { stdio: "inherit" });
+	//execSync("bunx tsc", { stdio: "inherit" });
 	execSync("bunx vite build", { stdio: "inherit" });
 	execSync(`bunx electron-builder --config temp-config.json ${flag}`, {
 		stdio: "inherit",
