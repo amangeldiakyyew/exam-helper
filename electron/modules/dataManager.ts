@@ -3,11 +3,16 @@ import path from "node:path";
 
 import { app } from "electron";
 
-import type { ClassData, StudentInfo } from "../../src/types";
+import type { ClassData, EmailTemplate, StudentInfo } from "../../src/types";
 
 const getDataFilePath = () => {
 	const userDataPath = app.getPath("userData");
 	return path.join(userDataPath, "student_data.json");
+};
+
+const getTemplateFilePath = () => {
+	const userDataPath = app.getPath("userData");
+	return path.join(userDataPath, "email_template.json");
 };
 
 export async function loadData(): Promise<ClassData> {
@@ -84,5 +89,38 @@ export async function deleteStudent(
 	if (data[className]) {
 		delete data[className][studentName];
 		await saveData(data);
+	}
+}
+
+// Email Template
+export async function getEmailTemplate(): Promise<EmailTemplate> {
+	try {
+		const templateFile = getTemplateFilePath();
+		const data = await fs.readFile(templateFile, "utf-8");
+		return JSON.parse(data);
+	} catch (error: unknown) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+			// Return default template
+			return {
+				subject: "{{Okul No}} - {{Ad Soyad}} Sınav Sonucu",
+				message:
+					"Sayın {{Anne Adı Soyadı}} ve {{Baba Adı Soyadı}},\n\nÖğrenciniz {{Ad Soyad}} ({{Okul No}}) için sınav sonucu ekte yer almaktadır.\n\nSaygılarımızla.",
+			};
+		}
+		console.error("Error loading email template:", error);
+		throw error;
+	}
+}
+
+export async function saveEmailTemplate(
+	template: EmailTemplate,
+): Promise<void> {
+	try {
+		const templateFile = getTemplateFilePath();
+		await fs.mkdir(path.dirname(templateFile), { recursive: true });
+		await fs.writeFile(templateFile, JSON.stringify(template, null, 2), "utf-8");
+	} catch (error) {
+		console.error("Error saving email template:", error);
+		throw error;
 	}
 }

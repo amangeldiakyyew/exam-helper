@@ -2,7 +2,7 @@ import { Button } from "./button";
 
 import { useEffect, useState } from "react";
 import { useIpc } from "../hooks/useIpc";
-import type { FoundReport } from "../types";
+import type { FoundReport, StudentInfo } from "../types";
 
 export const PdfParsing = () => {
 	const ipc = useIpc();
@@ -19,6 +19,12 @@ export const PdfParsing = () => {
 		totalPages: number;
 		outputDir: string;
 	} | null>(null);
+
+	const [students, setStudents] = useState<Record<string, StudentInfo>>({});
+	const [selectedReports, setSelectedReports] = useState<Set<string>>(
+		new Set(),
+	);
+	const [isSendingBulk, setIsSendingBulk] = useState(false);
 
 	useEffect(() => {
 		loadClasses();
@@ -41,8 +47,9 @@ export const PdfParsing = () => {
 
 	const loadStudentCount = async () => {
 		try {
-			const students = await ipc.getStudents(selectedClass);
-			setStudentCount(Object.keys(students).length);
+			const studentsData = await ipc.getStudents(selectedClass);
+			setStudents(studentsData);
+			setStudentCount(Object.keys(studentsData).length);
 		} catch (error) {
 			showNotification(`Hata: ${(error as Error).message}`);
 		}
@@ -63,6 +70,7 @@ export const PdfParsing = () => {
 			setLoading(true);
 			const result = await ipc.parsePdf(selectedClass);
 			setParseResult(result);
+			setSelectedReports(new Set()); // Reset selection
 			showNotification(
 				`${result.foundReports.length} rapor bulundu, ${result.missingStudents.length} eksik`,
 			);
@@ -120,6 +128,150 @@ export const PdfParsing = () => {
 			showNotification("Rapor başarıyla silindi");
 		} catch (error) {
 			showNotification(`Hata: ${(error as Error).message}`);
+		}
+	};
+
+	const handleSendEmail = async (report: FoundReport) => {
+		try {
+			const studentInfo = students[report.studentName];
+			if (!studentInfo) {
+				showNotification(`${report.studentName} için öğrenci bilgisi bulunamadı`);
+				return;
+			}
+
+			// Check if student has parent email
+			if (
+				!studentInfo["Anne E-posta"] &&
+				!studentInfo["Baba E-posta"]
+			) {
+				showNotification(
+					`${report.studentName} için anne veya baba e-posta adresi bulunamadı`,
+				);
+				return;
+			}
+
+			await ipc.openOutlookEmail(
+				report.studentName,
+				studentInfo,
+				report.filePath,
+			);
+
+			showNotification(`${report.studentName} için Outlook açıldı`);
+		} catch (error) {
+			showNotification(`Hata: ${(error as Error).message}`);
+		}
+	};
+
+	const handleSelectReport = (reportId: string) => {
+		setSelectedReports((prev) => {
+			const newSet = new Set(prev);
+			if (newSet.has(reportId)) {
+				newSet.delete(reportId);
+			} else {
+				newSet.add(reportId);
+			}
+			return newSet;
+		});
+	};
+
+	const handleSelectAll = () => {
+		if (!parseResult) return;
+
+		if (selectedReports.size === parseResult.foundReports.length) {
+			// Deselect all
+			setSelectedReports(new Set());
+		} else {
+			// Select all students with email
+			const reportsWithEmail = parseResult.foundReports.filter((report) => {
+				const studentInfo = students[report.studentName];
+				return (
+					studentInfo?.["Anne E-posta"] || studentInfo?.["Baba E-posta"]
+				);
+			});
+			setSelectedReports(new Set(reportsWithEmail.map((r) => r.id)));
+		}
+	};
+
+	const handleBulkSendEmails = async () => {
+		if (selectedReports.size === 0) {
+			showNotification("Lütfen en az bir öğrenci seçin");
+			return;
+		}
+
+		if (
+			!confirm(
+				`${selectedReports.size} öğrenci için Outlook e-postaları sırayla açılacak. Devam etmek istiyor musunuz?`,
+			)
+		) {
+			return;
+		}
+
+		setIsSendingBulk(true);
+		let successCount = 0;
+		let errorCount = 0;
+		const selectedReportsArray = Array.from(selectedReports);
+
+		try {
+			for (let i = 0; i < selectedReportsArray.length; i++) {
+				const reportId = selectedReportsArray[i];
+				const report = parseResult?.foundReports.find((r) => r.id === reportId);
+				if (!report) {
+					errorCount++;
+					continue;
+				}
+
+				const studentInfo = students[report.studentName];
+				if (!studentInfo) {
+					console.error(`Student info not found for ${report.studentName}`);
+					errorCount++;
+					continue;
+				}
+
+				// Check if student has parent email
+				if (
+					!studentInfo["Anne E-posta"] &&
+					!studentInfo["Baba E-posta"]
+				) {
+					console.error(`No email found for ${report.studentName}`);
+					errorCount++;
+					continue;
+				}
+
+				try {
+					await ipc.openOutlookEmail(
+						report.studentName,
+						studentInfo,
+						report.filePath,
+					);
+					successCount++;
+					console.log(`✓ Outlook opened for ${report.studentName}`);
+
+					// Wait 2 seconds before opening next email (not for the last one)
+					if (i < selectedReportsArray.length - 1) {
+						await new Promise((resolve) => setTimeout(resolve, 2000));
+					}
+				} catch (error) {
+					console.error(
+						`Failed to open email for ${report.studentName}:`,
+						error,
+					);
+					errorCount++;
+				}
+			}
+
+			// Always show the final notification
+			const message =
+				errorCount > 0
+					? `✓ ${successCount} e-posta açıldı, ✗ ${errorCount} hata`
+					: `✓ ${successCount} e-posta başarıyla açıldı!`;
+
+			showNotification(message);
+			setSelectedReports(new Set()); // Clear selection after bulk send
+		} catch (error) {
+			console.error("Bulk send error:", error);
+			showNotification(`❌ Hata: ${(error as Error).message}`);
+		} finally {
+			setIsSendingBulk(false);
 		}
 	};
 
@@ -256,16 +408,41 @@ export const PdfParsing = () => {
 					{/* Found Reports */}
 					{parseResult.foundReports.length > 0 && (
 						<div className="space-y-4">
-							<div className="flex items-center justify-between">
+							<div className="flex items-center justify-between gap-2 flex-wrap">
 								<h3 className="font-semibold text-gray-800">
 									🔎 Bulunan Raporlar ({parseResult.foundReports.length})
+									{selectedReports.size > 0 && (
+										<span className="ml-2 text-sm text-indigo-600">
+											({selectedReports.size} seçili)
+										</span>
+									)}
 								</h3>
-								<Button
-									onClick={handleDownloadZip}
-									className="bg-indigo-600 hover:bg-indigo-700"
-								>
-									📁 Tümünü ZIP İndir
-								</Button>
+								<div className="flex gap-2">
+									<Button
+										onClick={handleDownloadZip}
+										className="bg-indigo-600 hover:bg-indigo-700"
+									>
+										📁 Tümünü ZIP İndir
+									</Button>
+									<Button
+										onClick={handleBulkSendEmails}
+										disabled={selectedReports.size === 0 || isSendingBulk}
+										className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400"
+									>
+										{isSendingBulk
+											? "Gönderiliyor..."
+											: `📧 Seçilenlere E-posta Gönder (${selectedReports.size})`}
+									</Button>
+								</div>
+							</div>
+
+							<div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+								<p className="text-sm text-gray-700">
+									<strong>İpucu:</strong> E-posta göndermek istediğiniz
+									öğrencileri seçin. Seçili öğrenciler için Outlook e-postaları
+									sırayla açılacak (2 saniye aralıklarla). Her e-postayı kontrol
+									edip gönderin.
+								</p>
 							</div>
 
 							{parseResult.hasDuplicates && (
@@ -280,7 +457,25 @@ export const PdfParsing = () => {
 								<table className="w-full text-sm">
 									<thead className="bg-gray-100 sticky top-0">
 										<tr>
+											<th className="px-4 py-2 text-center w-12">
+												<input
+													type="checkbox"
+													checked={
+														parseResult.foundReports.length > 0 &&
+														selectedReports.size > 0 &&
+														selectedReports.size ===
+															parseResult.foundReports.filter((r) => {
+																const si = students[r.studentName];
+																return si?.["Anne E-posta"] || si?.["Baba E-posta"];
+															}).length
+													}
+													onChange={handleSelectAll}
+													className="w-4 h-4 cursor-pointer"
+													title="Tümünü seç/kaldır"
+												/>
+											</th>
 											<th className="px-4 py-2 text-left">Öğrenci</th>
+											<th className="px-4 py-2 text-left">E-posta</th>
 											<th className="px-4 py-2 text-left">Eşleşen Metin</th>
 											<th className="px-4 py-2 text-left">Dosya Adı</th>
 											<th className="px-4 py-2 text-center">Sayfa</th>
@@ -288,39 +483,75 @@ export const PdfParsing = () => {
 										</tr>
 									</thead>
 									<tbody>
-										{parseResult.foundReports.map((report) => (
-											<tr key={report.id} className="border-t hover:bg-gray-50">
-												<td className="px-4 py-2 font-medium">
-													{report.studentName}
-												</td>
-												<td className="px-4 py-2 text-gray-600 text-xs">
-													{report.matchedText.substring(0, 50)}
-													{report.matchedText.length > 50 && "..."}
-												</td>
-												<td className="px-4 py-2 text-xs text-gray-600">
-													{report.fileNameSchoolNo}
-												</td>
-												<td className="px-4 py-2 text-center">
-													{report.pageNumber}
-												</td>
-												<td className="px-4 py-2">
-													<div className="flex gap-2 justify-center">
-														<button
-															onClick={() => handleDownloadPdf(report)}
-															className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs"
-														>
-															İndir
-														</button>
-														<button
-															onClick={() => handleDeleteReport(report)}
-															className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-xs"
-														>
-															Sil
-														</button>
-													</div>
-												</td>
-											</tr>
-										))}
+										{parseResult.foundReports.map((report) => {
+											const studentInfo = students[report.studentName];
+											const hasEmail =
+												studentInfo?.["Anne E-posta"] ||
+												studentInfo?.["Baba E-posta"];
+											const isSelected = selectedReports.has(report.id);
+											return (
+												<tr
+													key={report.id}
+													className={`border-t hover:bg-gray-50 ${
+														isSelected ? "bg-blue-50" : ""
+													}`}
+												>
+													<td className="px-4 py-2 text-center">
+														<input
+															type="checkbox"
+															checked={isSelected}
+															onChange={() => handleSelectReport(report.id)}
+															disabled={!hasEmail}
+															className="w-4 h-4 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+														/>
+													</td>
+													<td className="px-4 py-2 font-medium">
+														{report.studentName}
+													</td>
+													<td className="px-4 py-2 text-xs">
+														{hasEmail ? (
+															<span className="text-green-600">✓ Var</span>
+														) : (
+															<span className="text-red-600">✗ Yok</span>
+														)}
+													</td>
+													<td className="px-4 py-2 text-gray-600 text-xs">
+														{report.matchedText.substring(0, 30)}
+														{report.matchedText.length > 30 && "..."}
+													</td>
+													<td className="px-4 py-2 text-xs text-gray-600">
+														{report.fileNameSchoolNo}
+													</td>
+													<td className="px-4 py-2 text-center">
+														{report.pageNumber}
+													</td>
+													<td className="px-4 py-2">
+														<div className="flex gap-2 justify-center flex-wrap">
+															<button
+																onClick={() => handleSendEmail(report)}
+																disabled={!hasEmail}
+																className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-xs disabled:bg-gray-400 disabled:cursor-not-allowed"
+																title={hasEmail ? "Outlook'ta aç" : "E-posta yok"}
+															>
+																📧 E-posta
+															</button>
+															<button
+																onClick={() => handleDownloadPdf(report)}
+																className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs"
+															>
+																İndir
+															</button>
+															<button
+																onClick={() => handleDeleteReport(report)}
+																className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-xs"
+															>
+																Sil
+															</button>
+														</div>
+													</td>
+												</tr>
+											);
+										})}
 									</tbody>
 								</table>
 							</div>

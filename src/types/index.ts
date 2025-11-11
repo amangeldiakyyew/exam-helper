@@ -51,3 +51,15 @@ export interface ExcelRow {
 	"Baba E-posta"?: string;
 	"Baba Telefon"?: string;
 }
+
+export interface EmailTemplate {
+	subject: string;
+	message: string;
+}
+
+export interface OutlookEmailData {
+	to: string[];
+	subject: string;
+	body: string;
+	attachmentPath: string;
+}

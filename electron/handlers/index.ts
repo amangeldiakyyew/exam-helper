@@ -4,15 +4,21 @@ import { createRequire } from "node:module";
 import { dialog, ipcMain, shell } from "electron";
 
 import archiver from "archiver";
-import type { ExcelRow, StudentInfo } from "../../src/types";
+import type { EmailTemplate, ExcelRow, StudentInfo } from "../../src/types";
 import {
 	deleteClass,
 	deleteStudent,
 	getClasses,
+	getEmailTemplate,
 	getStudentsByClass,
 	saveClass,
+	saveEmailTemplate,
 	saveStudent,
 } from "../modules/dataManager";
+import {
+	openOutlookEmail,
+	prepareEmailFromTemplate,
+} from "../modules/outlookEmailer";
 import { parsePdfForStudents, prepareStudentInfo } from "../modules/pdfParser";
 
 // XLSX is a CommonJS module, use require
@@ -306,3 +312,73 @@ ipcMain.handle("open-folder", async (_event, folderPath: string) => {
 		return { success: false, error: (error as Error).message };
 	}
 });
+
+// Email Template
+ipcMain.handle("get-email-template", async () => {
+	try {
+		const template = await getEmailTemplate();
+		return { success: true, template };
+	} catch (error) {
+		return { success: false, error: (error as Error).message };
+	}
+});
+
+ipcMain.handle("save-email-template", async (_event, template: EmailTemplate) => {
+	try {
+		await saveEmailTemplate(template);
+		return { success: true };
+	} catch (error) {
+		return { success: false, error: (error as Error).message };
+	}
+});
+
+// Open Outlook Email
+ipcMain.handle(
+	"open-outlook-email",
+	async (
+		_event,
+		studentName: string,
+		studentInfo: StudentInfo,
+		attachmentPath: string,
+	) => {
+		try {
+			// Get email template
+			const template = await getEmailTemplate();
+
+			// Prepare email content with template variables
+			const { subject, body } = prepareEmailFromTemplate(
+				template,
+				studentName,
+				studentInfo as Record<string, string>,
+			);
+
+			// Collect recipient emails
+			const recipients: string[] = [];
+			if (studentInfo["Anne E-posta"]) {
+				recipients.push(studentInfo["Anne E-posta"]);
+			}
+			if (studentInfo["Baba E-posta"]) {
+				recipients.push(studentInfo["Baba E-posta"]);
+			}
+
+			if (recipients.length === 0) {
+				return {
+					success: false,
+					error: `${studentName} için e-posta adresi bulunamadı`,
+				};
+			}
+
+			// Open Outlook with pre-filled email
+			await openOutlookEmail({
+				to: recipients,
+				subject: subject,
+				body: body,
+				attachmentPath: attachmentPath,
+			});
+
+			return { success: true };
+		} catch (error) {
+			return { success: false, error: (error as Error).message };
+		}
+	},
+);

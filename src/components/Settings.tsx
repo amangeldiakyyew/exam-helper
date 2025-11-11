@@ -10,7 +10,9 @@ export const Settings = () => {
 	const [selectedClass, setSelectedClass] = useState<string>("");
 	const [students, setStudents] = useState<Record<string, StudentInfo>>({});
 	const [newClassName, setNewClassName] = useState("");
-	const [activeTab, setActiveTab] = useState<"add" | "edit" | "bulk">("add");
+	const [activeTab, setActiveTab] = useState<
+		"add" | "edit" | "bulk" | "template"
+	>("template");
 	const [selectedStudent, setSelectedStudent] = useState("");
 	const [loading, setLoading] = useState(false);
 	const [notification, setNotification] = useState("");
@@ -35,6 +37,26 @@ export const Settings = () => {
 			loadStudents();
 		}
 	}, [selectedClass]);
+
+	useEffect(() => {
+		if (selectedStudent && students[selectedStudent]) {
+			const student = students[selectedStudent];
+			setFormData(student);
+			setStudentName(selectedStudent);
+		} else {
+			// Reset form when no student selected
+			setFormData({
+				"Okul No": "",
+				"Anne Adı Soyadı": "",
+				"Anne E-posta": "",
+				"Anne Telefon": "",
+				"Baba Adı Soyadı": "",
+				"Baba E-posta": "",
+				"Baba Telefon": "",
+			});
+			setStudentName("");
+		}
+	}, [selectedStudent, students]);
 
 	const loadClasses = async () => {
 		try {
@@ -116,14 +138,6 @@ export const Settings = () => {
 		}
 	};
 
-	const handleLoadStudentForEdit = () => {
-		if (!selectedStudent) return;
-		const student = students[selectedStudent];
-		if (student) {
-			setFormData(student);
-			setStudentName(selectedStudent);
-		}
-	};
 
 	const handleUpdateStudent = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -136,6 +150,7 @@ export const Settings = () => {
 				formData,
 			);
 			showNotification("Öğrenci başarıyla güncellendi");
+			// Reset selection (this will trigger useEffect to clear form)
 			setSelectedStudent("");
 			await loadStudents();
 		} catch (error) {
@@ -154,6 +169,7 @@ export const Settings = () => {
 		try {
 			await ipc.deleteStudent(selectedClass, selectedStudent);
 			showNotification("Öğrenci başarıyla silindi");
+			// Reset selection (this will trigger useEffect to clear form)
 			setSelectedStudent("");
 			await loadStudents();
 		} catch (error) {
@@ -178,7 +194,7 @@ export const Settings = () => {
 	return (
 		<div className="space-y-6">
 			<h1 className="text-3xl font-bold text-gray-800">
-				⚙️ Ayarlar ve Veri Yönetimi
+				📂 Sınıf ve Öğrenci Yönetimi
 			</h1>
 
 			{notification && (
@@ -190,7 +206,7 @@ export const Settings = () => {
 			{/* Class Management */}
 			<div className="bg-white rounded-lg shadow-md p-6">
 				<h2 className="text-xl font-semibold mb-4">
-					1. Sınıf Seçimi ve Yönetimi
+					Sınıf Seçimi ve Yönetimi
 				</h2>
 
 				<div className="mb-4">
@@ -245,13 +261,16 @@ export const Settings = () => {
 			{/* Student Management */}
 			{selectedClass && (
 				<div className="bg-white rounded-lg shadow-md p-6">
-					<h2 className="text-xl font-semibold mb-4">2. Öğrenci Yönetimi</h2>
+					<h2 className="text-xl font-semibold mb-4">Öğrenci Yönetimi</h2>
 
 					{/* Tabs */}
-					<div className="flex gap-2 mb-4 border-b">
+					<div className="flex gap-2 mb-4 border-b overflow-x-auto">
 						<button
-							onClick={() => setActiveTab("add")}
-							className={`px-4 py-2 font-medium ${
+							onClick={() => {
+								setActiveTab("add");
+								setSelectedStudent(""); // Clear selection when switching to add tab
+							}}
+							className={`px-4 py-2 font-medium whitespace-nowrap ${
 								activeTab === "add"
 									? "border-b-2 border-indigo-600 text-indigo-600"
 									: "text-gray-600"
@@ -260,8 +279,11 @@ export const Settings = () => {
 							Tek Öğrenci Ekle
 						</button>
 						<button
-							onClick={() => setActiveTab("edit")}
-							className={`px-4 py-2 font-medium ${
+							onClick={() => {
+								setActiveTab("edit");
+								setSelectedStudent(""); // Clear selection when switching to edit tab
+							}}
+							className={`px-4 py-2 font-medium whitespace-nowrap ${
 								activeTab === "edit"
 									? "border-b-2 border-indigo-600 text-indigo-600"
 									: "text-gray-600"
@@ -270,8 +292,11 @@ export const Settings = () => {
 							Öğrenci Düzenle/Sil
 						</button>
 						<button
-							onClick={() => setActiveTab("bulk")}
-							className={`px-4 py-2 font-medium ${
+							onClick={() => {
+								setActiveTab("bulk");
+								setSelectedStudent(""); // Clear selection when switching to bulk tab
+							}}
+							className={`px-4 py-2 font-medium whitespace-nowrap ${
 								activeTab === "bulk"
 									? "border-b-2 border-indigo-600 text-indigo-600"
 									: "text-gray-600"
@@ -398,10 +423,7 @@ export const Settings = () => {
 								</label>
 								<select
 									value={selectedStudent}
-									onChange={(e) => {
-										setSelectedStudent(e.target.value);
-										setTimeout(handleLoadStudentForEdit, 0);
-									}}
+									onChange={(e) => setSelectedStudent(e.target.value)}
 									className="w-full px-4 py-2 border border-gray-300 rounded-lg"
 								>
 									<option value="">-- Öğrenci Seçin --</option>

@@ -2,8 +2,8 @@ import { ReactNode } from "react";
 
 interface LayoutProps {
 	children: ReactNode;
-	currentPage: "settings" | "pdf-parsing";
-	onNavigate: (page: "settings" | "pdf-parsing") => void;
+	currentPage: "settings" | "pdf-parsing" | "email-template";
+	onNavigate: (page: "settings" | "pdf-parsing" | "email-template") => void;
 }
 
 export const Layout = ({ children, currentPage, onNavigate }: LayoutProps) => {
@@ -34,7 +34,17 @@ export const Layout = ({ children, currentPage, onNavigate }: LayoutProps) => {
 									: "hover:bg-indigo-500 text-white"
 							}`}
 						>
-							<span className="flex items-center gap-2">📂 Ayarlar</span>
+							<span className="flex items-center gap-2">📂 Sınıf & Öğrenci</span>
+						</button>
+						<button
+							onClick={() => onNavigate("email-template")}
+							className={`w-full text-left px-4 py-3 rounded-lg transition-all ${
+								currentPage === "email-template"
+									? "bg-white text-indigo-600 shadow-lg font-medium"
+									: "hover:bg-indigo-500 text-white"
+							}`}
+						>
+							<span className="flex items-center gap-2">📧 E-posta Şablonu</span>
 						</button>
 					</div>
 				</div>

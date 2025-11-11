@@ -1,6 +1,6 @@
 import type { IpcRenderer } from "electron";
 
-import type { FoundReport, StudentInfo } from "../types";
+import type { EmailTemplate, FoundReport, StudentInfo } from "../types";
 
 declare global {
 	interface Window {
@@ -120,6 +120,27 @@ export const useIpc = () => {
 
 		openFolder: async (folderPath: string): Promise<void> => {
 			await invoke("open-folder", folderPath);
+		},
+
+		// Email Template
+		getEmailTemplate: async (): Promise<EmailTemplate> => {
+			const result = await invoke<{ template: EmailTemplate }>(
+				"get-email-template",
+			);
+			return result.template;
+		},
+
+		saveEmailTemplate: async (template: EmailTemplate): Promise<void> => {
+			await invoke("save-email-template", template);
+		},
+
+		// Open Outlook Email
+		openOutlookEmail: async (
+			studentName: string,
+			studentInfo: StudentInfo,
+			attachmentPath: string,
+		): Promise<void> => {
+			await invoke("open-outlook-email", studentName, studentInfo, attachmentPath);
 		},
 	};
 };
