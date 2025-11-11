@@ -55,7 +55,12 @@ export async function openOutlookEmail(
 		: "";
 
 	// PowerShell script using here-strings to avoid escaping issues
+	// Set UTF-8 encoding for proper Turkish character handling
 	const psScript = `
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+chcp 65001 | Out-Null
+
 try {
     $outlook = New-Object -ComObject Outlook.Application
     $mail = $outlook.CreateItem(0)
@@ -88,8 +93,10 @@ ${body}
 	);
 
 	try {
-		// Write the PowerShell script to a file
-		await fs.writeFile(tempScriptPath, psScript, "utf-8");
+		// Write the PowerShell script to a file with UTF-8 BOM for proper Turkish character handling
+		const utf8BOM = Buffer.from('\ufeff', 'utf8');
+		const scriptBuffer = Buffer.from(psScript, 'utf8');
+		await fs.writeFile(tempScriptPath, Buffer.concat([utf8BOM, scriptBuffer]));
 
 		// Execute the PowerShell script file
 		await execAsync(
