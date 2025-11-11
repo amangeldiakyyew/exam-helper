@@ -65,8 +65,24 @@ export async function parsePdfForStudents(
 		let hasDuplicates = false;
 
 		// Normalize Turkish characters for better matching
+		// This handles both Turkish->Latin and keeps the text searchable both ways
 		const normalizeTurkish = (str: string) => {
-			return str.toLowerCase().replace(/i̇/g, "i").replace(/İ/g, "i");
+			return str
+				.toLowerCase()
+				.replace(/i̇/g, "i")
+				.replace(/İ/g, "i")
+				.replace(/ı/g, "i")
+				.replace(/Ι/g, "i")
+				.replace(/ğ/g, "g")
+				.replace(/Ğ/g, "g")
+				.replace(/ü/g, "u")
+				.replace(/Ü/g, "u")
+				.replace(/ş/g, "s")
+				.replace(/Ş/g, "s")
+				.replace(/ö/g, "o")
+				.replace(/Ö/g, "o")
+				.replace(/ç/g, "c")
+				.replace(/Ç/g, "c");
 		};
 
 		const searchPatterns: Record<
@@ -82,6 +98,39 @@ export async function parsePdfForStudents(
 				return parts.join("\\s+");
 			};
 
+			// Helper to generate all possible combinations of name parts
+			const generateCombinations = (parts: string[]) => {
+				const combos: string[][] = [];
+				
+				// Add all possible pairs (for partial names like "fatma sert" from "fatma bengi sert")
+				for (let i = 0; i < parts.length; i++) {
+					for (let j = i + 1; j < parts.length; j++) {
+						combos.push([parts[i], parts[j]]);
+						combos.push([parts[j], parts[i]]);
+					}
+				}
+				
+				// Add all possible triples if we have 3+ parts
+				if (parts.length >= 3) {
+					for (let i = 0; i < parts.length; i++) {
+						for (let j = i + 1; j < parts.length; j++) {
+							for (let k = j + 1; k < parts.length; k++) {
+								// Generate all permutations of the triple
+								const triple = [parts[i], parts[j], parts[k]];
+								combos.push([triple[0], triple[1], triple[2]]);
+								combos.push([triple[0], triple[2], triple[1]]);
+								combos.push([triple[1], triple[0], triple[2]]);
+								combos.push([triple[1], triple[2], triple[0]]);
+								combos.push([triple[2], triple[0], triple[1]]);
+								combos.push([triple[2], triple[1], triple[0]]);
+							}
+						}
+					}
+				}
+				
+				return combos;
+			};
+
 			// Generate multiple pattern variations for flexible matching
 			if (nameParts.length === 2) {
 				// For 2-part names: try both orders
@@ -89,27 +138,38 @@ export async function parsePdfForStudents(
 				patterns.push(createPattern([...nameParts].reverse()));
 			} else if (nameParts.length === 3) {
 				// For 3-part names (common in Turkish):
-				// Format: [FirstName, MiddleName, Surname] or [Surname, FirstName, MiddleName]
+				// Full name patterns
 				const [a, b, c] = nameParts;
-
-				// Common Turkish name orderings:
 				patterns.push(createPattern([a, b, c])); // FirstName MiddleName Surname
-				patterns.push(createPattern([c, a, b])); // Surname FirstName MiddleName (official docs)
+				patterns.push(createPattern([c, a, b])); // Surname FirstName MiddleName
 				patterns.push(createPattern([c, b, a])); // Surname MiddleName FirstName
 				patterns.push(createPattern([b, a, c])); // MiddleName FirstName Surname
 				patterns.push(createPattern([a, c, b])); // FirstName Surname MiddleName
 				patterns.push(createPattern([b, c, a])); // MiddleName Surname FirstName
+				
+				// Partial name patterns (2 parts from 3)
+				const partialCombos = generateCombinations(nameParts);
+				for (const combo of partialCombos) {
+					patterns.push(createPattern(combo));
+				}
 			} else if (nameParts.length >= 4) {
-				// For 4+ part names: try a few common patterns
-				patterns.push(createPattern(nameParts)); // As-is
+				// For 4+ part names
+				patterns.push(createPattern(nameParts)); // Full name as-is
 				patterns.push(createPattern([...nameParts].reverse())); // Reversed
-				// Try last name first with rest following
+				
+				// Try last name first with rest
 				patterns.push(
 					createPattern([
 						nameParts[nameParts.length - 1],
 						...nameParts.slice(0, -1),
 					]),
 				);
+				
+				// Add partial combinations
+				const partialCombos = generateCombinations(nameParts);
+				for (const combo of partialCombos) {
+					patterns.push(createPattern(combo));
+				}
 			} else {
 				// Single name or fallback
 				patterns.push(createPattern(nameParts));

@@ -55,10 +55,14 @@ export interface ExcelRow {
 export interface EmailTemplate {
 	subject: string;
 	message: string;
+	cc?: string; // Comma-separated email addresses
+	bcc?: string; // Comma-separated email addresses
 }
 
 export interface OutlookEmailData {
 	to: string[];
+	cc?: string[];
+	bcc?: string[];
 	subject: string;
 	body: string;
 	attachmentPath: string;

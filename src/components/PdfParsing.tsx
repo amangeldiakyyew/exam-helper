@@ -398,10 +398,6 @@ export const PdfParsing = () => {
 									</span>
 								))}
 							</div>
-							<p className="text-xs text-yellow-600 mt-2">
-								💡 İpucu: PDF'deki isimler, Ayarlar'daki isimlerle tam olarak
-								eşleşmelidir
-							</p>
 						</div>
 					)}
 

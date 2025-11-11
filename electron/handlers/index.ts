@@ -368,9 +368,23 @@ ipcMain.handle(
 				};
 			}
 
+			// Parse CC and BCC from template
+			const ccEmails =
+				template.cc
+					?.split(",")
+					.map((e) => e.trim())
+					.filter((e) => e.length > 0) || [];
+			const bccEmails =
+				template.bcc
+					?.split(",")
+					.map((e) => e.trim())
+					.filter((e) => e.length > 0) || [];
+
 			// Open Outlook with pre-filled email
 			await openOutlookEmail({
 				to: recipients,
+				cc: ccEmails.length > 0 ? ccEmails : undefined,
+				bcc: bccEmails.length > 0 ? bccEmails : undefined,
 				subject: subject,
 				body: body,
 				attachmentPath: attachmentPath,

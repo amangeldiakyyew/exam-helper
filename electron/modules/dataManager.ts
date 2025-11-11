@@ -97,7 +97,13 @@ export async function getEmailTemplate(): Promise<EmailTemplate> {
 	try {
 		const templateFile = getTemplateFilePath();
 		const data = await fs.readFile(templateFile, "utf-8");
-		return JSON.parse(data);
+		const template = JSON.parse(data);
+		// Ensure cc and bcc exist for backward compatibility
+		return {
+			...template,
+			cc: template.cc || "",
+			bcc: template.bcc || "",
+		};
 	} catch (error: unknown) {
 		if ((error as NodeJS.ErrnoException).code === "ENOENT") {
 			// Return default template
@@ -105,6 +111,8 @@ export async function getEmailTemplate(): Promise<EmailTemplate> {
 				subject: "{{Okul No}} - {{Ad Soyad}} Sınav Sonucu",
 				message:
 					"Sayın {{Anne Adı Soyadı}} ve {{Baba Adı Soyadı}},\n\nÖğrenciniz {{Ad Soyad}} ({{Okul No}}) için sınav sonucu ekte yer almaktadır.\n\nSaygılarımızla.",
+				cc: "",
+				bcc: "",
 			};
 		}
 		console.error("Error loading email template:", error);

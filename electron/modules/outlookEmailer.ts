@@ -21,6 +21,8 @@ function replaceTemplateVariables(
 
 export interface OutlookEmailOptions {
 	to: string[];
+	cc?: string[];
+	bcc?: string[];
 	subject: string;
 	body: string;
 	attachmentPath: string;
@@ -33,14 +35,24 @@ export interface OutlookEmailOptions {
 export async function openOutlookEmail(
 	options: OutlookEmailOptions,
 ): Promise<void> {
-	const { to, subject, body, attachmentPath } = options;
+	const { to, cc, bcc, subject, body, attachmentPath } = options;
 
 	const recipients = to.join(";");
+	const ccRecipients = cc && cc.length > 0 ? cc.join(";") : "";
+	const bccRecipients = bcc && bcc.length > 0 ? bcc.join(";") : "";
 
 	// Escape single quotes for PowerShell here-string
 	const escapeForHereString = (str: string) => {
 		return str.replace(/'/g, "''");
 	};
+
+	// Build CC and BCC lines conditionally
+	const ccLine = ccRecipients
+		? `    $mail.CC = '${escapeForHereString(ccRecipients)}'`
+		: "";
+	const bccLine = bccRecipients
+		? `    $mail.BCC = '${escapeForHereString(bccRecipients)}'`
+		: "";
 
 	// PowerShell script using here-strings to avoid escaping issues
 	const psScript = `
@@ -48,6 +60,8 @@ try {
     $outlook = New-Object -ComObject Outlook.Application
     $mail = $outlook.CreateItem(0)
     $mail.To = '${escapeForHereString(recipients)}'
+${ccLine}
+${bccLine}
     $mail.Subject = '${escapeForHereString(subject)}'
     $mail.Body = @'
 ${body}

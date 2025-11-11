@@ -10,6 +10,8 @@ export const EmailTemplateEditor = () => {
 	const [template, setTemplate] = useState<EmailTemplate>({
 		subject: "",
 		message: "",
+		cc: "",
+		bcc: "",
 	});
 
 	useEffect(() => {
@@ -132,6 +134,40 @@ export const EmailTemplateEditor = () => {
 						placeholder="Örnek: {{Okul No}} - {{Ad Soyad}} Sınav Sonucu"
 						className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
 					/>
+				</div>
+
+				<div>
+					<label className="block text-sm font-medium mb-1">
+						CC (Karbon Kopya) - Opsiyonel
+					</label>
+					<input
+						type="text"
+						value={template.cc || ""}
+						onChange={(e) => setTemplate({ ...template, cc: e.target.value })}
+						placeholder="Örnek: mudur@okul.com, mudur.yardimcisi@okul.com"
+						className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+					/>
+					<p className="text-xs text-gray-500 mt-1">
+						Birden fazla e-posta adresi için virgül (,) kullanın. Bu kişiler
+						e-postayı görebilir.
+					</p>
+				</div>
+
+				<div>
+					<label className="block text-sm font-medium mb-1">
+						BCC (Gizli Kopya) - Opsiyonel
+					</label>
+					<input
+						type="text"
+						value={template.bcc || ""}
+						onChange={(e) => setTemplate({ ...template, bcc: e.target.value })}
+						placeholder="Örnek: yonetim@okul.com"
+						className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+					/>
+					<p className="text-xs text-gray-500 mt-1">
+						Birden fazla e-posta adresi için virgül (,) kullanın. Bu kişiler
+						diğer alıcılara görünmez.
+					</p>
 				</div>
 
 				<div>
