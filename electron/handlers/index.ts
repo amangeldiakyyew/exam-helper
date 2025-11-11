@@ -313,6 +313,19 @@ ipcMain.handle("open-folder", async (_event, folderPath: string) => {
 	}
 });
 
+ipcMain.handle("open-file", async (_event, filePath: string) => {
+	try {
+		const result = await shell.openPath(filePath);
+		if (result) {
+			// If result is not empty, it means there was an error
+			return { success: false, error: result };
+		}
+		return { success: true };
+	} catch (error) {
+		return { success: false, error: (error as Error).message };
+	}
+});
+
 // Email Template
 ipcMain.handle("get-email-template", async () => {
 	try {

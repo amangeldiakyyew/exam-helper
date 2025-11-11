@@ -285,6 +285,15 @@ export const PdfParsing = () => {
 		}
 	};
 
+	const handleViewPdf = async (report: FoundReport) => {
+		try {
+			await ipc.openFile(report.filePath);
+			showNotification(`${report.studentName} için PDF açıldı`);
+		} catch (error) {
+			showNotification(`Hata: ${(error as Error).message}`);
+		}
+	};
+
 	return (
 		<div className="space-y-6">
 			<h1 className="text-3xl font-bold text-gray-800">
@@ -523,6 +532,13 @@ export const PdfParsing = () => {
 													</td>
 													<td className="px-4 py-2">
 														<div className="flex gap-2 justify-center flex-wrap">
+															<button
+																onClick={() => handleViewPdf(report)}
+																className="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 text-xs"
+																title="PDF'i görüntüle"
+															>
+																👁️ Görüntüle
+															</button>
 															<button
 																onClick={() => handleSendEmail(report)}
 																disabled={!hasEmail}

@@ -122,6 +122,10 @@ export const useIpc = () => {
 			await invoke("open-folder", folderPath);
 		},
 
+		openFile: async (filePath: string): Promise<void> => {
+			await invoke("open-file", filePath);
+		},
+
 		// Email Template
 		getEmailTemplate: async (): Promise<EmailTemplate> => {
 			const result = await invoke<{ template: EmailTemplate }>(
